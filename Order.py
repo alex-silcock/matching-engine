@@ -6,7 +6,7 @@ class Order:
     def __init__(self, data):
         self.data = data
         self.data['time'] = datetime.now()
-        self.trade_id = uuid.uuid4()
+        self.data['trade_id'] = uuid.uuid4()
         self.next = None
         self.previous = None
 
