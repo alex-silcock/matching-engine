@@ -17,3 +17,10 @@ class Order:
 
     def set(self, var, val):
         self.data[var] = val
+
+
+    def update_quantity(self, diff=None, new_qty=None):
+        if diff:
+            self.set("qty", self.get("qty") + diff)
+        elif new_qty:
+            self.set("qty", new_qty)
