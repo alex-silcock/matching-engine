@@ -9,13 +9,16 @@ class OrderBook:
         return Order(data)
 
     def get_fair_price(self):
-        return round((self.get_best_bid() + self.get_best_offer()) / 2, 5)
+        best_bid, best_offer = self.get_best_bid(), self.get_best_offer()
+        if best_bid and best_offer:
+            return round((best_bid + best_offer) / 2, 5)
+        return None
 
     def get_best_bid(self):
-        return self.head_bid.get("price") if self.head_bid else -1
+        return self.head_bid.get("price") if self.head_bid else None
 
     def get_best_offer(self):
-        return self.head_offer.get("price") if self.head_offer else -1
+        return self.head_offer.get("price") if self.head_offer else None
 
     def update_quantity(self, order, diff=None, new_qty=None):
         if diff:
@@ -36,7 +39,7 @@ class OrderBook:
         new_order_price = data.get("price")
 
         if data.get("side") == "BUY":
-            if (self.get_best_offer() != -1) and new_order_price >= self.best_offer:
+            if (self.get_best_offer()) and new_order_price >= self.best_offer:
                 self.handle_spread_cross("SELL", new_order)
                 return
             self.insert_bid(new_order) 
@@ -46,22 +49,23 @@ class OrderBook:
                 return
             self.insert_offer(new_order)
     
-    def handle_spread_cross(self, side, order):
+    def handle_spread_cross(self, side_crossed, incoming_order):
         orders_traded = []
-        qty_left_to_trade = order.get("qty")
-        if side == "BUY":
+        qty_left_to_trade = incoming_order.get("qty")
+
+        if side_crossed == "BUY":
             current = self.head_bid
             while qty_left_to_trade:
                 current_trade_qty = current.get("qty")
                 current_trade_id = current.get("trade_id")
                 current_trade_side = current.get("side")
+
                 if qty_left_to_trade >= current_trade_qty:
                     orders_traded.append(current_trade_id)
                     self.cancel_order(current_trade_id, current_trade_side)
                     qty_left_to_trade -= current_trade_qty
-                    order.set("qty", qty_left_to_trade)
+                    self.update_quantity(incoming_order, new_qty=qty_left_to_trade)
                     current = current.next
-                    self.add(order)
 
                 # cur trade has more qty than what's left to be traded 5 < 10
                 else:
@@ -69,9 +73,10 @@ class OrderBook:
                     diff = min(qty_left_to_trade, current_trade_qty) * -1
                     self.update_quantity(current, diff=diff)
                     qty_left_to_trade = 0
+                    
 
 
-        elif side == "SELL":
+        elif side_crossed == "SELL":
             return            
         return orders_traded
         
@@ -160,15 +165,17 @@ class OrderBook:
 
 
     def print_book(self):
+        print("BIDS:")
         self.print_side("BUY")
-        print("\n\n")
+        print("\n")
+        print("OFFERS:")
+        print("\n")
         self.print_side("SELL")
-        print("\n\n")
 
     def print_side(self, side):
         if side == "BUY":
             node = self.head_bid
-        else:
+        elif side == "SELL":
             node = self.head_offer
         while node:
             print(str(node.data), end = "\n")
@@ -179,10 +186,8 @@ if __name__ == "__main__":
         {"qty": 1, "price": 0.80, "side": "BUY"},
         {"qty": 1, "price": 0.90, "side": "BUY"},
         {"qty": 1, "price": 1.90, "side": "BUY"},
-        {"qty": 0.5, "price": 0.89, "side": "SELL"},
-        # TODO - this below order doesnt work - there is 0.5 to buy at 
-        # 1.9 and it wipes the bids at 1.9 AND 0.9
-        {"qty": 1, "price": 1.20, "side": "SELL"}
+        {"qty": 0.5, "price": 0.90, "side": "SELL"},
+        {"qty": 1.5, "price": 1.20, "side": "SELL"}
     ]
     book = OrderBook()
     for order in orders:
