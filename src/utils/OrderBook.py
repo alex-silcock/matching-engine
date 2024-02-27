@@ -44,12 +44,14 @@ class OrderBook:
         new_order_price = data.get("price")
 
         if data.get("side") == "BUY":
-            if self.get_best_offer() and new_order_price >= self.best_offer:
+            best_offer = self.get_best_offer()
+            if best_offer and new_order_price >= best_offer:
                 self.handle_spread_cross("SELL", new_order)
                 return
             self.insert_bid(new_order) 
         else:
-            if self.get_best_bid() and new_order_price <= self.best_bid:
+            best_bid = self.get_best_bid()
+            if best_bid and new_order_price <= best_bid:
                 self.handle_spread_cross("BUY", new_order)
                 return
             self.insert_offer(new_order)
@@ -60,29 +62,28 @@ class OrderBook:
 
         if side_crossed == "BUY":
             current = self.head_bid
-            while qty_left_to_trade:
-                current_trade_qty = current.get("qty")
-                current_trade_id = current.get("trade_id")
-                current_trade_side = current.get("side")
-
-                if qty_left_to_trade >= current_trade_qty:
-                    orders_traded.append(current_trade_id)
-                    self.cancel_order(current_trade_id, current_trade_side)
-                    qty_left_to_trade -= current_trade_qty
-                    self.update_quantity(incoming_order, new_qty=qty_left_to_trade)
-                    current = current.next
-
-                # cur trade has more qty than what's left to be traded 5 < 10
-                else:
-                    orders_traded.append(current_trade_id)
-                    diff = min(qty_left_to_trade, current_trade_qty) * -1
-                    self.update_quantity(current, diff=diff)
-                    qty_left_to_trade = 0
-                    
-
-
         elif side_crossed == "SELL":
-            return
+            current = self.head_offer
+
+        while qty_left_to_trade:
+            current_trade_qty = current.get("qty")
+            current_trade_id = current.get("trade_id")
+            current_trade_side = current.get("side")
+
+            if qty_left_to_trade >= current_trade_qty:
+                orders_traded.append(current_trade_id)
+                self.cancel_order(current_trade_id, current_trade_side)
+                qty_left_to_trade -= current_trade_qty
+                self.update_quantity(incoming_order, new_qty=qty_left_to_trade)
+                current = current.next
+
+            # cur trade has more qty than what's left to be traded 5 < 10
+            else:
+                orders_traded.append(current_trade_id)
+                diff = min(qty_left_to_trade, current_trade_qty) * -1
+                self.update_quantity(current, diff=diff)
+                qty_left_to_trade = 0
+                    
         return orders_traded
         
     def cancel_order(self, trade_id, side):
@@ -115,41 +116,36 @@ class OrderBook:
 
     def insert_bid(self, order):
         bid_price = order.get("price")
-        if self.head_bid is None:
+        if not self.head_bid:
             self.head_bid = order
-            self.best_bid = bid_price
+            self.head_bid.next = None
         
         # new order price is higher, insert at front of list 
         elif bid_price > self.head_bid.get("price"):
             order.next = self.head_bid
             order.next.previous = order
             self.head_bid = order
-            self.best_bid = bid_price
 
         else:
             current = self.head_bid
             next = current.next 
             while (next is not None) and (next.get("price") > bid_price):
+                next = next.nexts
                 current = current.next
 
             order.next = current.next
-
-            if current.next is not None:
-                order.next.previous = order
-
             current.next = order
             order.previous = current
 
     def insert_offer(self, order):
         offer_price = order.get("price")
-        if self.head_offer is None:
+        if not self.head_offer:
             self.head_offer = order
-            self.best_offer = offer_price
+            self.head_offer.next = None
             return
         
         # new order price is lower
         elif order.get("price") < self.head_offer.get("price"):
-            self.best_offer = offer_price 
             order.next = self.head_offer
             order.next.previous = order 
             self.head_offer = order
@@ -159,12 +155,9 @@ class OrderBook:
             next = current.next 
             while (next is not None) and (next.get("price") < offer_price):
                 current = current.next
+                next = next.next
 
             order.next = current.next
-
-            if current.next is not None:
-                order.next.previous = order
-
             current.next = order
             order.previous = current
 
@@ -183,7 +176,7 @@ class OrderBook:
         elif side == "SELL":
             node = self.head_offer
         while node:
-            print(str(node.data), end = "\n")
+            print(str(node.data), end="\n")
             node = node.next
 
 
@@ -193,7 +186,7 @@ def main() -> None:
     orders = [
         {"qty": 1, "price": 0.80, "side": "SELL"},
         {"qty": 1, "price": 0.90, "side": "SELL"},
-        {"qty": 1, "price": 1.90, "side": "SELL"},
+        {"qty": 1, "price": 1.00, "side": "SELL"},
         {"qty": 0.5, "price": 0.90, "side": "BUY"},
         {"qty": 1.5, "price": 1.20, "side": "BUY"}
     ]
