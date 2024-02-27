@@ -180,8 +180,6 @@ class OrderBook:
             node = node.next
 
 
-
-
 def main() -> None:
     orders = [
         {"qty": 1, "price": 0.80, "side": "SELL"},
@@ -198,8 +196,7 @@ def main() -> None:
     print("Best Offer: ", book.get_best_offer())
     print("Fair Price: ", book.get_fair_price())
 
-    # TODO - match the order if the spread is crossed
-    # Add orders based on time
+    # TODO - Add orders based on time
     
 if __name__ == "__main__":
    main() 
