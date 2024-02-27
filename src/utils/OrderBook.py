@@ -1,4 +1,9 @@
-from Order import Order
+import os
+import sys
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.append(parent_dir)
+from utils.Order import Order
 
 class OrderBook:
     def __init__(self):
@@ -39,12 +44,12 @@ class OrderBook:
         new_order_price = data.get("price")
 
         if data.get("side") == "BUY":
-            if (self.get_best_offer()) and new_order_price >= self.best_offer:
+            if self.get_best_offer() and new_order_price >= self.best_offer:
                 self.handle_spread_cross("SELL", new_order)
                 return
             self.insert_bid(new_order) 
         else:
-            if (self.get_best_bid() != -1) and new_order_price <= self.best_bid:
+            if self.get_best_bid() and new_order_price <= self.best_bid:
                 self.handle_spread_cross("BUY", new_order)
                 return
             self.insert_offer(new_order)
@@ -77,7 +82,7 @@ class OrderBook:
 
 
         elif side_crossed == "SELL":
-            return            
+            return
         return orders_traded
         
     def cancel_order(self, trade_id, side):
@@ -181,13 +186,16 @@ class OrderBook:
             print(str(node.data), end = "\n")
             node = node.next
 
-if __name__ == "__main__":
+
+
+
+def main() -> None:
     orders = [
-        {"qty": 1, "price": 0.80, "side": "BUY"},
-        {"qty": 1, "price": 0.90, "side": "BUY"},
-        {"qty": 1, "price": 1.90, "side": "BUY"},
-        {"qty": 0.5, "price": 0.90, "side": "SELL"},
-        {"qty": 1.5, "price": 1.20, "side": "SELL"}
+        {"qty": 1, "price": 0.80, "side": "SELL"},
+        {"qty": 1, "price": 0.90, "side": "SELL"},
+        {"qty": 1, "price": 1.90, "side": "SELL"},
+        {"qty": 0.5, "price": 0.90, "side": "BUY"},
+        {"qty": 1.5, "price": 1.20, "side": "BUY"}
     ]
     book = OrderBook()
     for order in orders:
@@ -200,3 +208,5 @@ if __name__ == "__main__":
     # TODO - match the order if the spread is crossed
     # Add orders based on time
     
+if __name__ == "__main__":
+   main() 

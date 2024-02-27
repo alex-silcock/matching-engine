@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 
-
 class Order:
     def __init__(self, data):
         self.data = data
